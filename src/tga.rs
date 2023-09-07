@@ -8,7 +8,7 @@ use std::{
 use bytemuck::{bytes_of, bytes_of_mut};
 use bytemuck_derive::{Pod, Zeroable};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct TGAColor {
     pub r: u8,
     pub g: u8,
