@@ -1,5 +1,4 @@
 use std::{
-    error::Error,
     fmt,
     fs::File,
     io::Read,
@@ -125,13 +124,13 @@ impl TGAImage {
 
         self.width = header.width as usize;
         self.height = header.height as usize;
-        let bytesapp = header.bits_per_pixel >> 3;
+        let bytespp = header.bits_per_pixel >> 3;
         let mut badformat = false;
-        if bytesapp == 1 {
+        if bytespp == 1 {
             self.format = TGAFormat::GRAYSCALE;
-        } else if bytesapp == 3 {
+        } else if bytespp == 3 {
             self.format = TGAFormat::RGB;
-        } else if bytesapp == 4 {
+        } else if bytespp == 4 {
             self.format = TGAFormat::RGBA;
         } else {
             badformat = true;
@@ -201,7 +200,6 @@ impl TGAImage {
     }
 
     pub fn write_tga_file(&self, filename: &str, rle: bool) -> io::Result<()> {
-        println!("write to {}", filename);
         let mut f = File::create(filename)?;
 
         let developer_area_ref: [u8; 4] = [0; 4];
@@ -305,11 +303,9 @@ impl TGAImage {
     }
 
     pub fn flip_horizontally(&mut self) {
-        println!("flip_horizontally");
         let half = self.width >> 1;
         for i in 0..half {
             for j in 0..self.height {
-                println!("swap ({}, {}) with ({}, {})", i, j, self.width - 1 - i, j);
                 let c1 = self.get(i, j);
                 let c2 = self.get(self.width - 1 - i, j);
                 self.set(i, j, c2);
@@ -319,7 +315,6 @@ impl TGAImage {
     }
 
     pub fn flip_vertically(&mut self) {
-        println!("flip_vertically");
         let half = self.height >> 1;
         for i in 0..self.width {
             for j in 0..half {
@@ -331,7 +326,46 @@ impl TGAImage {
         }
     }
 
-    pub fn scale(&self, w: usize, h: usize) {}
+    pub fn scale(&mut self, w: usize, h: usize) {
+        let bytespp = self.bytespp();
+        let mut tdata: Vec<u8> = vec![0; w * h * bytespp];
+        let mut nscanline: usize = 0;
+        let mut oscanline: usize = 0;
+        let mut erry: i64 = 0;
+        let nlinebytes = w * bytespp;
+        let olinebytes = self.width * bytespp;
+        for _j in 0..self.height {
+            let mut errx = self.width as i64 - w as i64;
+            let mut nx = -(bytespp as i64);
+            let mut ox = -(bytespp as i64);
+            for _i in 0..self.width {
+                ox += bytespp as i64;
+                errx += w as i64;
+                while errx >= self.width as i64 {
+                    errx -= self.width as i64;
+                    nx += bytespp as i64;
+                    let toff = nscanline + nx as usize;
+                    let ooff = oscanline + ox as usize;
+                    tdata[toff..toff + bytespp].copy_from_slice(&self.data[ooff..ooff + bytespp]);
+                }
+            }
+            erry += h as i64;
+            oscanline += olinebytes;
+            while erry >= self.height as i64 {
+                if erry >= (self.height << 1) as i64 {
+                    let toff = nscanline + nlinebytes;
+                    let mut tbuff: Vec<u8> = vec![0; nlinebytes];
+                    tbuff.copy_from_slice(&tdata[nscanline..nscanline + nlinebytes]);
+                    tdata[toff..toff + nlinebytes].copy_from_slice(&tbuff);
+                }
+                erry -= self.height as i64;
+                nscanline += nlinebytes;
+            }
+        }
+        self.data = tdata;
+        self.width = w;
+        self.height = h;
+    }
 
     pub fn get(&self, x: usize, y: usize) -> TGAColor {
         if x >= self.width || y >= self.height {
