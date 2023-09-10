@@ -1,13 +1,15 @@
 use std::{fs::read_to_string, io};
 
+use glam::Vec3;
+
 pub struct Model {
-    verts: Vec<[f32; 3]>,
+    verts: Vec<Vec3>,
     faces: Vec<Vec<usize>>,
 }
 
 impl Model {
     pub fn new(filename: &str) -> io::Result<Self> {
-        let mut verts = Vec::<[f32; 3]>::new();
+        let mut verts = Vec::<Vec3>::new();
         let mut faces = Vec::<Vec<usize>>::new();
         for line in read_to_string(filename)?.lines() {
             if line.starts_with("v ") {
@@ -18,7 +20,7 @@ impl Model {
                 if vs.len() != 3 {
                     continue;
                 }
-                let mut vert: [f32; 3] = [3.0; 3];
+                let mut vert = Vec3::default();
                 for i in 0..3 {
                     vert[i] = vs[i];
                 }
@@ -56,7 +58,7 @@ impl Model {
         &self.faces[idx]
     }
 
-    pub fn vert(&self, idx: usize) -> [f32; 3] {
+    pub fn vert(&self, idx: usize) -> Vec3 {
         self.verts[idx]
     }
 }

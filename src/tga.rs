@@ -23,10 +23,40 @@ impl TGAColor {
         b: 255,
         a: 255,
     };
+    pub const BLACK: TGAColor = TGAColor {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
     pub const RED: TGAColor = TGAColor {
         r: 255,
         g: 0,
         b: 0,
+        a: 255,
+    };
+    pub const GREEN: TGAColor = TGAColor {
+        r: 0,
+        g: 255,
+        b: 0,
+        a: 255,
+    };
+    pub const BLUE: TGAColor = TGAColor {
+        r: 0,
+        g: 0,
+        b: 255,
+        a: 255,
+    };
+    pub const YELLOW: TGAColor = TGAColor {
+        r: 255,
+        g: 255,
+        b: 0,
+        a: 255,
+    };
+    pub const PURPLE: TGAColor = TGAColor {
+        r: 255,
+        g: 0,
+        b: 255,
         a: 255,
     };
     pub const CLEAR: TGAColor = TGAColor {
