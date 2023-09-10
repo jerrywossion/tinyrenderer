@@ -68,6 +68,14 @@ impl TGAColor {
     pub fn raw(&self) -> [u8; 4] {
         [self.b, self.g, self.r, self.a]
     }
+    pub fn get_color(&self, intensity: f32) -> TGAColor {
+        TGAColor {
+            r: (self.r as f32 * intensity) as u8,
+            g: (self.g as f32 * intensity) as u8,
+            b: (self.b as f32 * intensity) as u8,
+            a: self.a,
+        }
+    }
 }
 
 impl fmt::Display for TGAColor {

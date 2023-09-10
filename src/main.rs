@@ -15,6 +15,7 @@ fn draw_mesh() -> io::Result<()> {
     let width: usize = 800;
     let height: usize = 800;
     let mut image = TGAImage::new(width, height, tga::TGAFormat::RGB);
+    let light_dir = Vec3::from_array([0.0, 0.0, -1.0]);
     for i in 0..model.nfaces() {
         let face = model.face(i);
 
@@ -27,7 +28,18 @@ fn draw_mesh() -> io::Result<()> {
             vs.push(Vec2 { x, y });
             wc.push(v);
         }
-        draw_triangle(vs[0], vs[1], vs[2], &mut image, TGAColor::WHITE, false);
+        let n = ((wc[2] - wc[1]).cross(wc[1] - wc[0])).normalize();
+        let intensity = (n * light_dir).z;
+        if intensity > 0.0 {
+            draw_triangle(
+                vs[0],
+                vs[1],
+                vs[2],
+                &mut image,
+                TGAColor::WHITE.get_color(intensity),
+                false,
+            );
+        }
     }
     image.flip_vertically();
     image.write_tga_file("output.tga", true)?;

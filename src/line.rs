@@ -10,23 +10,6 @@ pub fn draw_line(a: Vec2, b: Vec2, image: &mut TGAImage, color: TGAColor, antial
     }
 }
 
-fn get_color(color: &TGAColor, frac: f32) -> TGAColor {
-    let has_alpha = true;
-    if has_alpha {
-        TGAColor {
-            a: (color.a as f32 * frac) as u8,
-            ..*color
-        }
-    } else {
-        TGAColor {
-            r: (color.r as f32 * frac) as u8,
-            g: (color.g as f32 * frac) as u8,
-            b: (color.b as f32 * frac) as u8,
-            a: (color.a as f32 * frac) as u8,
-        }
-    }
-}
-
 fn xw_line_jerryw(a: Vec2, b: Vec2, image: &mut TGAImage, color: TGAColor) {
     let mut xs = a.x;
     let mut xe = b.x;
@@ -67,24 +50,12 @@ fn xw_line_jerryw(a: Vec2, b: Vec2, image: &mut TGAImage, color: TGAColor) {
         let yd = y.floor();
         let fu = 1.0 - (yu - y);
         let fd = 1.0 - (y - yd);
-        let coloru = TGAColor {
-            r: (color.r as f32 * fu) as u8,
-            g: (color.g as f32 * fu) as u8,
-            b: (color.b as f32 * fu) as u8,
-            a: (color.a as f32 * fu) as u8,
-        };
-        let colord = TGAColor {
-            r: (color.r as f32 * fd) as u8,
-            g: (color.g as f32 * fd) as u8,
-            b: (color.b as f32 * fd) as u8,
-            a: (color.a as f32 * fd) as u8,
-        };
         if is_steep {
-            image.set(yu as usize, x as usize, coloru);
-            image.set(yd as usize, x as usize, colord);
+            image.set(yu as usize, x as usize, color.get_color(fu));
+            image.set(yd as usize, x as usize, color.get_color(fd));
         } else {
-            image.set(x as usize, yu as usize, coloru);
-            image.set(x as usize, yd as usize, colord);
+            image.set(x as usize, yu as usize, color.get_color(fu));
+            image.set(x as usize, yd as usize, color.get_color(fd));
         }
     }
 }
