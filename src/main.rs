@@ -46,6 +46,7 @@ fn draw_mesh() -> io::Result<()> {
                 &mut image,
                 &texture,
                 &vts,
+                intensity,
                 false,
             );
         }

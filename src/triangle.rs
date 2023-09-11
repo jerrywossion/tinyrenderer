@@ -36,6 +36,7 @@ pub fn draw_triangle(
     image: &mut TGAImage,
     texture: &TGAImage,
     vts: &Vec<Vec2>,
+    intensity: f32,
     antialiasing: bool,
 ) {
     // draw_line(a, b, image, color, antialiasing);
@@ -73,7 +74,7 @@ pub fn draw_triangle(
                     texture.get(
                         (vt_coord.x * texture.get_width() as f32) as usize,
                         (vt_coord.y * texture.get_width() as f32) as usize,
-                    ),
+                    ).get_color(intensity),
                 );
                 zbuffer[idx] = z;
             }
