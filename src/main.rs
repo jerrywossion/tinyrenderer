@@ -27,6 +27,7 @@ fn draw_mesh() -> io::Result<()> {
         let mut vs: Vec<Vec3> = vec![];
         let mut ovs: Vec<Vec3> = vec![];
         let mut vts: Vec<Vec2> = vec![];
+        let mut vns: Vec<Vec3> = vec![];
         for j in 0..3 {
             let v = model.vert(face[j].x as usize);
             let x = (v[0] + 1.0) * width as f32 / 2.0;
@@ -34,6 +35,7 @@ fn draw_mesh() -> io::Result<()> {
             vs.push(Vec3 { x, y, z: v[2] });
             ovs.push(v);
             vts.push(model.texture(face[j].y as usize));
+            vns.push(model.vn(face[j].z as usize))
         }
         let n = ((ovs[2] - ovs[1]).cross(ovs[1] - ovs[0])).normalize();
         let intensity = (n * light_dir).z;
@@ -46,6 +48,7 @@ fn draw_mesh() -> io::Result<()> {
                 &mut image,
                 &texture,
                 &vts,
+                &vns,
                 intensity,
                 false,
             );

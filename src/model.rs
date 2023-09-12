@@ -5,6 +5,7 @@ use glam::{Vec2, Vec3};
 pub struct Model {
     verts: Vec<Vec3>,
     vts: Vec<Vec2>,
+    vns: Vec<Vec3>,
     faces: Vec<Vec<Vec3>>,
 }
 
@@ -12,6 +13,7 @@ impl Model {
     pub fn new(filename: &str) -> io::Result<Self> {
         let mut verts = Vec::<Vec3>::new();
         let mut vts = Vec::<Vec2>::new();
+        let mut vns = Vec::<Vec3>::new();
         let mut faces = Vec::<Vec<Vec3>>::new();
         for line in read_to_string(filename)?.lines() {
             if line.starts_with("v ") {
@@ -41,7 +43,7 @@ impl Model {
                             return Some(Vec3 {
                                 x: (parts[0] - 1) as f32,
                                 y: (parts[1] - 1) as f32,
-                                z: parts[2] as f32,
+                                z: (parts[2] - 1) as f32,
                             });
                         }
                     })
@@ -60,9 +62,22 @@ impl Model {
                     vt[i] = vt_s[i];
                 }
                 vts.push(vt);
+            } else if line.starts_with("vn ") {
+                let vn_s: Vec<f32> = line
+                    .split_whitespace()
+                    .filter_map(|fstr| fstr.parse::<f32>().ok())
+                    .collect();
+                if vn_s.len() != 3 {
+                    continue;
+                }
+                let mut vn = Vec3::default();
+                for i in 0..3 {
+                    vn[i] = vn_s[i];
+                }
+                vns.push(vn);
             }
         }
-        Ok(Self { verts, vts, faces })
+        Ok(Self { verts, vts, vns, faces })
     }
 
     pub fn nverts(&self) -> usize {
@@ -83,5 +98,9 @@ impl Model {
 
     pub fn texture(&self, idx: usize) -> Vec2 {
         self.vts[idx]
+    }
+
+    pub fn vn(&self, idx: usize) -> Vec3 {
+        self.vns[idx]
     }
 }

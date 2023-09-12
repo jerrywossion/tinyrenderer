@@ -36,6 +36,7 @@ pub fn draw_triangle(
     image: &mut TGAImage,
     texture: &TGAImage,
     vts: &Vec<Vec2>,
+    vns: &Vec<Vec3>,
     intensity: f32,
     antialiasing: bool,
 ) {
@@ -67,6 +68,14 @@ pub fn draw_triangle(
             let z = u * a.z + v * b.z + (1.0 - u - v) * c.z;
             let idx = x + image.get_width() * y;
             let vt_coord = vts[0] + (vts[2] - vts[0]) * u + (vts[1] - vts[0]) * v;
+            let w = 1.0 - u - v;
+            let n = Vec3 {
+                x: vns[0].x * w + vns[2].x * u + vns[1].x * v,
+                y: vns[0].y * w + vns[2].y * u + vns[1].y* v,
+                z: vns[0].z * w + vns[2].z * u + vns[1].z * v,
+            };
+            let light_dir = Vec3::from_array([0.0, 0.0, -1.0]);
+            let intensity = -(n * light_dir).z;
             if inside && z > zbuffer[idx] {
                 image.set(
                     x as usize,
