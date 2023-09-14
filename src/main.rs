@@ -1,6 +1,9 @@
 use model::Model;
 use nalgebra::{Matrix4, Matrix4x3, Vector3, Vector4};
-use std::io::{self};
+use std::{
+    io::{self},
+    time::Instant,
+};
 use tga::{TGAColor, TGAImage};
 use triangle::draw_triangle;
 
@@ -87,6 +90,7 @@ fn render_model(model_file: &str, texture_file: &str, image: &mut TGAImage) -> i
 }
 
 fn main() {
+    let start = Instant::now();
     let width: usize = 800;
     let height: usize = 800;
     let mut image = TGAImage::new(width, height, tga::TGAFormat::RGB);
@@ -98,4 +102,5 @@ fn main() {
 
     image.flip_vertically();
     _ = image.write_tga_file("output.tga", true);
+    println!("[tinyrenderer] {:?}", start.elapsed());
 }

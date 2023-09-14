@@ -1,6 +1,6 @@
 use std::cmp::{max, min};
 
-use nalgebra::{Matrix4x3, Vector2, Vector3, Vector4};
+use nalgebra::{Matrix4x3, Vector2, Vector3};
 
 use crate::tga::{TGAColor, TGAImage};
 
@@ -11,6 +11,7 @@ struct Triangle<'a> {
 }
 
 impl<'a> Triangle<'a> {
+    #[allow(dead_code)]
     fn new(a: &'a Vector2<f32>, b: &'a Vector2<f32>, c: &'a Vector2<f32>) -> Self {
         Self { a, b, c }
     }
@@ -29,6 +30,7 @@ impl<'a> Triangle<'a> {
         *v = (cc * pb - bc * pc) / d;
     }
 
+    #[allow(dead_code)]
     fn contains(&self, p: &Vector2<f32>) -> bool {
         let mut u: f32 = 0.0;
         let mut v: f32 = 0.0;

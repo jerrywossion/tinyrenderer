@@ -3,6 +3,7 @@ use std::{
     fs::File,
     io::Read,
     io::{self, Write},
+    time::Instant,
 };
 
 use bytemuck::{bytes_of, bytes_of_mut};
@@ -352,14 +353,26 @@ impl TGAImage {
         }
     }
 
+    fn swap(&mut self, x1: usize, y1: usize, x2: usize, y2: usize) {
+        let format = self.format;
+        let off1 = self.offset(x1, y1);
+        let off2 = self.offset(x2, y2);
+        let bytespp = self.bytespp();
+        match format {
+            TGAFormat::GRAYSCALE => self.data.swap(off1, off2),
+            TGAFormat::RGB | TGAFormat::RGBA => {
+                for i in 0..bytespp {
+                    self.data.swap(off1 + i, off2 + i)
+                }
+            }
+        }
+    }
+
     pub fn flip_vertically(&mut self) {
         let half = self.height >> 1;
         for i in 0..self.width {
             for j in 0..half {
-                let c1 = self.get(i, j);
-                let c2 = self.get(i, self.height - 1 - j);
-                self.set(i, j, c2);
-                self.set(i, self.height - 1 - j, c1);
+                self.swap(i, j, i, self.height - 1 - j);
             }
         }
     }
@@ -405,11 +418,15 @@ impl TGAImage {
         self.height = h;
     }
 
+    fn offset(&self, x: usize, y: usize) -> usize {
+        (x + y * self.width) * self.bytespp()
+    }
+
     pub fn get(&self, x: usize, y: usize) -> TGAColor {
         if x >= self.width || y >= self.height {
             return TGAColor::CLEAR;
         }
-        let offset = (x + y * self.width) * self.bytespp();
+        let offset = self.offset(x, y);
         match self.format {
             TGAFormat::GRAYSCALE => TGAColor {
                 r: 0,
