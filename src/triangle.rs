@@ -52,9 +52,13 @@ pub fn draw_triangle(
     color: &TGAColor,
     use_texture: bool,
 ) {
-    let a = vertices.column(0);
-    let b = vertices.column(1);
-    let c = vertices.column(2);
+    let va = vertices.column(0);
+    let a = Vector3::new(va.x / va.w, va.y / va.w, va.z / va.w);
+    let vb = vertices.column(1);
+    let b = Vector3::new(vb.x / vb.w, vb.y / vb.w, vb.z / vb.w);
+    let vc = vertices.column(2);
+    let c = Vector3::new(vc.x / vc.w, vc.y / vc.w, vc.z / vc.w);
+
     let xs = min(min(a.x as usize, b.x as usize), c.x as usize);
     let ys = min(min(a.y as usize, b.y as usize), c.y as usize);
     let xe = max(max(a.x as usize, b.x as usize), c.x as usize);

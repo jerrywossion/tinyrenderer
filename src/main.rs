@@ -25,18 +25,34 @@ fn render_model(model_file: &str, texture_file: &str, image: &mut TGAImage) -> i
 
     let depth = 255.0;
     #[rustfmt::skip]
+    let vx = (width as f32) / 8.0;
+    let vy = (height as f32) / 8.0;
+    let vw = (width as f32) * 3.0 / 4.0;
+    let vh = (height as f32) * 3.0 / 4.0;
     let view_port = Matrix4::new(
-        width as f32 / 2.0, 0.0, 0.0, width as f32 / 2.0,
-        0.0, -(height as f32 / 2.0), 0.0, height as f32 / 2.0,
-        0.0, 0.0, depth / 2.0, depth / 2.0,
-        0.0, 0.0, 0.0, 1.0,
+        vw / 2.0,
+        0.0,
+        0.0,
+        vx + vw / 2.0,
+        0.0,
+        vh / 2.0,
+        0.0,
+        vy + vh / 2.0,
+        0.0,
+        0.0,
+        depth / 2.0,
+        depth / 2.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
     );
     #[rustfmt::skip]
-    let trans = Matrix4::new(
+    let projection = Matrix4::new(
         1.0, 0.0, 0.0, 0.0,
         0.0, 1.0, 0.0, 0.0,
         0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, -1.0 / 5.0, 1.0,
+        0.0, 0.0, -1.0/3.0, 1.0,
     );
     // render vertices
     for i in 0..model.face_cnt() {
@@ -53,7 +69,7 @@ fn render_model(model_file: &str, texture_file: &str, image: &mut TGAImage) -> i
             vertex_norms.push(model.vertex_norm(face[j].z as usize).to_owned());
         }
 
-        let screen_vertices = view_port * trans * vertices;
+        let screen_vertices = view_port * projection * vertices;
 
         draw_triangle(
             &screen_vertices,
@@ -80,5 +96,6 @@ fn main() {
         &mut image,
     );
 
+    image.flip_vertically();
     _ = image.write_tga_file("output.tga", true);
 }
