@@ -1,90 +1,109 @@
 use std::cmp::{max, min};
 
-use glam::{Mat2, Vec2, Vec3};
+use nalgebra::{Matrix4x3, Vector2, Vector3, Vector4};
 
-use crate::{
-    line::draw_line,
-    tga::{TGAColor, TGAImage},
-};
+use crate::tga::{TGAColor, TGAImage};
 
-fn barycentric(p: Vec2, a: Vec2, b: Vec2, c: Vec2, u: &mut f32, v: &mut f32) {
-    let c = c - a;
-    let b = b - a;
-    let p = p - a;
-    let cc = c.dot(c);
-    let bc = b.dot(c);
-    let pc = c.dot(p);
-    let bb = b.dot(b);
-    let pb = b.dot(p);
-    let d = cc * bb - bc * bc;
-    *u = (bb * pc - bc * pb) / d;
-    *v = (cc * pb - bc * pc) / d;
+struct Triangle<'a> {
+    a: &'a Vector2<f32>,
+    b: &'a Vector2<f32>,
+    c: &'a Vector2<f32>,
 }
 
-fn inside(p: Vec2, a: Vec2, b: Vec2, c: Vec2) -> bool {
-    let mut u: f32 = 0.0;
-    let mut v: f32 = 0.0;
-    barycentric(p, a, b, c, &mut u, &mut v);
-    u >= 0.0 && v >= 0.0 && (u + v) <= 1.0
+impl<'a> Triangle<'a> {
+    fn new(a: &'a Vector2<f32>, b: &'a Vector2<f32>, c: &'a Vector2<f32>) -> Self {
+        Self { a, b, c }
+    }
+
+    fn barycentric(&self, p: &Vector2<f32>, u: &mut f32, v: &mut f32) {
+        let c = self.c - self.a;
+        let b = self.b - self.a;
+        let p = p - self.a;
+        let cc = c.dot(&c);
+        let bc = b.dot(&c);
+        let pc = c.dot(&p);
+        let bb = b.dot(&b);
+        let pb = b.dot(&p);
+        let d = cc * bb - bc * bc;
+        *u = (bb * pc - bc * pb) / d;
+        *v = (cc * pb - bc * pc) / d;
+    }
+
+    fn contains(&self, p: &Vector2<f32>) -> bool {
+        let mut u: f32 = 0.0;
+        let mut v: f32 = 0.0;
+        self.contains_with_uv(p, &mut u, &mut v)
+    }
+
+    fn contains_with_uv(&self, p: &Vector2<f32>, u: &mut f32, v: &mut f32) -> bool {
+        self.barycentric(p, u, v);
+        *u >= 0.0 && *v >= 0.0 && (*u + *v) <= 1.0
+    }
 }
 
 pub fn draw_triangle(
-    a: Vec3,
-    b: Vec3,
-    c: Vec3,
-    zbuffer: &mut Vec<f32>,
+    vertices: &Matrix4x3<f32>,
+    texture_coords: &Vec<Vector3<f32>>,
+    vertex_norms: &Vec<Vector3<f32>>,
+    light_dir: &Vector3<f32>,
     image: &mut TGAImage,
+    zbuffer: &mut Vec<f32>,
     texture: &TGAImage,
-    vts: &Vec<Vec2>,
-    vns: &Vec<Vec3>,
-    intensity: f32,
-    antialiasing: bool,
+    color: &TGAColor,
+    use_texture: bool,
 ) {
-    // draw_line(a, b, image, color, antialiasing);
-    // draw_line(b, c, image, color, antialiasing);
-    // draw_line(c, a, image, color, antialiasing);
-
+    let a = vertices.column(0);
+    let b = vertices.column(1);
+    let c = vertices.column(2);
     let xs = min(min(a.x as usize, b.x as usize), c.x as usize);
     let ys = min(min(a.y as usize, b.y as usize), c.y as usize);
     let xe = max(max(a.x as usize, b.x as usize), c.x as usize);
     let ye = max(max(a.y as usize, b.y as usize), c.y as usize);
 
+    let triangle = Triangle {
+        a: &a.fixed_rows::<2>(0).into(),
+        b: &b.fixed_rows::<2>(0).into(),
+        c: &c.fixed_rows::<2>(0).into(),
+    };
+
     for y in ys..ye + 1 {
         for x in xs..xe + 1 {
+            // calculate u, v & check if inside
             let mut u: f32 = 0.0;
             let mut v: f32 = 0.0;
-            barycentric(
-                Vec2 {
-                    x: x as f32,
-                    y: y as f32,
-                },
-                Vec2 { x: a.x, y: a.y },
-                Vec2 { x: b.x, y: b.y },
-                Vec2 { x: c.x, y: c.y },
-                &mut u,
-                &mut v,
-            );
-            let inside = u >= 0.0 && v >= 0.0 && (u + v) <= 1.0;
-            let z = u * a.z + v * b.z + (1.0 - u - v) * c.z;
-            let idx = x + image.get_width() * y;
-            let vt_coord = vts[0] + (vts[2] - vts[0]) * u + (vts[1] - vts[0]) * v;
+            let inside =
+                triangle.contains_with_uv(&Vector2::new(x as f32, y as f32), &mut u, &mut v);
             let w = 1.0 - u - v;
-            let n = Vec3 {
-                x: vns[0].x * w + vns[2].x * u + vns[1].x * v,
-                y: vns[0].y * w + vns[2].y * u + vns[1].y* v,
-                z: vns[0].z * w + vns[2].z * u + vns[1].z * v,
-            };
-            let light_dir = Vec3::from_array([0.0, 0.0, -1.0]);
-            let intensity = -(n * light_dir).z;
-            if inside && z > zbuffer[idx] {
-                image.set(
-                    x as usize,
-                    y as usize,
+            // calculate z
+            let z = u * a.z + v * b.z + (1.0 - u - v) * c.z;
+
+            let idx = x + image.get_width() * y;
+            if idx >= zbuffer.len() {
+                return;
+            }
+            // interop norm
+            let norm = Vector3::new(
+                vertex_norms[0].x * w + vertex_norms[2].x * u + vertex_norms[1].x * v,
+                vertex_norms[0].y * w + vertex_norms[2].y * u + vertex_norms[1].y * v,
+                vertex_norms[0].z * w + vertex_norms[2].z * u + vertex_norms[1].z * v,
+            );
+            // calculate light intensity
+            let intensity = norm.dot(&light_dir);
+            if intensity > 0.0 && inside && z > zbuffer[idx] {
+                let color = if use_texture {
+                    // calculate texture uv coords
+                    let texture_coord = texture_coords[0]
+                        + (texture_coords[2] - texture_coords[0]) * u
+                        + (texture_coords[1] - texture_coords[0]) * v;
                     texture.get(
-                        (vt_coord.x * texture.get_width() as f32) as usize,
-                        (vt_coord.y * texture.get_width() as f32) as usize,
-                    ).get_color(intensity),
-                );
+                        (texture_coord.x * texture.get_width() as f32) as usize,
+                        (texture_coord.y * texture.get_height() as f32) as usize,
+                    )
+                } else {
+                    color.to_owned()
+                }
+                .get_color(intensity);
+                image.set(x as usize, y as usize, color);
                 zbuffer[idx] = z;
             }
         }

@@ -1,8 +1,14 @@
-use glam::Vec2;
+use nalgebra::Vector2;
 
 use crate::tga::{TGAColor, TGAImage};
 
-pub fn draw_line(a: Vec2, b: Vec2, image: &mut TGAImage, color: TGAColor, antialiasing: bool) {
+pub fn draw_line(
+    a: &Vector2<f32>,
+    b: &Vector2<f32>,
+    image: &mut TGAImage,
+    color: TGAColor,
+    antialiasing: bool,
+) {
     if antialiasing {
         xw_line_jerryw(a, b, image, color);
     } else {
@@ -10,7 +16,7 @@ pub fn draw_line(a: Vec2, b: Vec2, image: &mut TGAImage, color: TGAColor, antial
     }
 }
 
-fn xw_line_jerryw(a: Vec2, b: Vec2, image: &mut TGAImage, color: TGAColor) {
+fn xw_line_jerryw(a: &Vector2<f32>, b: &Vector2<f32>, image: &mut TGAImage, color: TGAColor) {
     let mut xs = a.x;
     let mut xe = b.x;
     let mut ys = a.y;
@@ -60,7 +66,7 @@ fn xw_line_jerryw(a: Vec2, b: Vec2, image: &mut TGAImage, color: TGAColor) {
     }
 }
 
-fn b_line(a: Vec2, b: Vec2, image: &mut TGAImage, color: TGAColor) {
+fn b_line(a: &Vector2<f32>, b: &Vector2<f32>, image: &mut TGAImage, color: TGAColor) {
     let mut xs = a.x;
     let mut xe = b.x;
     let mut ys = a.y;
