@@ -1,8 +1,9 @@
 use std::{
+    backtrace::BacktraceStatus,
     fmt,
     fs::File,
-    io::Read,
     io::{self, Write},
+    io::{BufRead, BufReader, BufWriter, Read},
     time::Instant,
 };
 
@@ -132,33 +133,34 @@ impl TGAImage {
     }
 
     pub fn read_tga_file(&mut self, filename: &str) -> io::Result<()> {
-        let mut f = File::open(filename)?;
+        let mut r = BufReader::new(File::open(filename)?);
         let mut header = TGAHeader::default();
         let mut u8buff: u8 = 0;
-        f.read(bytes_of_mut(&mut u8buff))?;
+
+        r.read(bytes_of_mut(&mut u8buff))?;
         header.id_length = u8buff;
-        f.read(bytes_of_mut(&mut u8buff))?;
+        r.read(bytes_of_mut(&mut u8buff))?;
         header.color_map_type = u8buff;
-        f.read(bytes_of_mut(&mut u8buff))?;
+        r.read(bytes_of_mut(&mut u8buff))?;
         header.data_type_code = u8buff;
         let mut u16buf: u16 = 0;
-        f.read(bytes_of_mut(&mut u16buf))?;
+        r.read(bytes_of_mut(&mut u16buf))?;
         header.color_map_origin = u16buf;
-        f.read(bytes_of_mut(&mut u16buf))?;
+        r.read(bytes_of_mut(&mut u16buf))?;
         header.color_map_length = u16buf;
-        f.read(bytes_of_mut(&mut u8buff))?;
+        r.read(bytes_of_mut(&mut u8buff))?;
         header.color_map_depth = u8buff;
-        f.read(bytes_of_mut(&mut u16buf))?;
+        r.read(bytes_of_mut(&mut u16buf))?;
         header.x_origin = u16buf;
-        f.read(bytes_of_mut(&mut u16buf))?;
+        r.read(bytes_of_mut(&mut u16buf))?;
         header.y_origin = u16buf;
-        f.read(bytes_of_mut(&mut u16buf))?;
+        r.read(bytes_of_mut(&mut u16buf))?;
         header.width = u16buf;
-        f.read(bytes_of_mut(&mut u16buf))?;
+        r.read(bytes_of_mut(&mut u16buf))?;
         header.height = u16buf;
-        f.read(bytes_of_mut(&mut u8buff))?;
+        r.read(bytes_of_mut(&mut u8buff))?;
         header.bits_per_pixel = u8buff;
-        f.read(bytes_of_mut(&mut u8buff))?;
+        r.read(bytes_of_mut(&mut u8buff))?;
         header.image_description = u8buff;
 
         self.width = header.width as usize;
@@ -181,9 +183,9 @@ impl TGAImage {
         let nbytes = bytespp * self.width * self.height;
         self.data = vec![0; nbytes];
         if header.data_type_code == 3 || header.data_type_code == 2 {
-            f.read(&mut self.data)?;
+            r.read(&mut self.data)?;
         } else if header.data_type_code == 10 || header.data_type_code == 11 {
-            self.load_rle_data(&mut f)?;
+            self.load_rle_data(&mut r)?;
         } else {
             return Err(io::Error::new(io::ErrorKind::Other, "Bad data type"));
         }
@@ -197,7 +199,7 @@ impl TGAImage {
         Ok(())
     }
 
-    fn load_rle_data(&mut self, file: &mut File) -> io::Result<()> {
+    fn load_rle_data(&mut self, file: &mut BufReader<File>) -> io::Result<()> {
         let pixel_count = self.width * self.height;
         let mut current_pixel: usize = 0;
         let mut current_byte: usize = 0;
@@ -239,7 +241,7 @@ impl TGAImage {
     }
 
     pub fn write_tga_file(&self, filename: &str, rle: bool) -> io::Result<()> {
-        let mut f = File::create(filename)?;
+        let mut o = BufWriter::new(File::create(filename)?);
 
         let developer_area_ref: [u8; 4] = [0; 4];
         let extension_area_ref: [u8; 4] = [0; 4];
@@ -266,33 +268,33 @@ impl TGAImage {
             }
         };
         header.image_description = 0x20; // top-left origin
-        if let Err(error) = f.write_all(bytes_of(&mut header)) {
+        if let Err(error) = o.write_all(bytes_of(&mut header)) {
             return Err(error);
         }
 
         if !rle {
-            if let Err(error) = f.write_all(&self.data) {
+            if let Err(error) = o.write_all(&self.data) {
                 return Err(error);
             }
         } else {
-            if let Err(error) = self.unload_rle_data(&mut f) {
+            if let Err(error) = self.unload_rle_data(&mut o) {
                 return Err(error);
             }
         }
-        if let Err(error) = f.write_all(&developer_area_ref) {
+        if let Err(error) = o.write_all(&developer_area_ref) {
             return Err(error);
         }
-        if let Err(error) = f.write_all(&extension_area_ref) {
+        if let Err(error) = o.write_all(&extension_area_ref) {
             return Err(error);
         }
-        if let Err(error) = f.write_all(&footer.map(|c| c as u8)) {
+        if let Err(error) = o.write_all(&footer.map(|c| c as u8)) {
             return Err(error);
         }
 
         Ok(())
     }
 
-    fn unload_rle_data(&self, file: &mut File) -> io::Result<()> {
+    fn unload_rle_data(&self, file: &mut BufWriter<File>) -> io::Result<()> {
         let max_chunk_length: usize = 128;
         let npixels = self.width * self.height;
         let mut curpix = 0;
@@ -338,7 +340,8 @@ impl TGAImage {
                 return Err(err);
             }
         }
-        return Ok(());
+
+        Ok(())
     }
 
     pub fn flip_horizontally(&mut self) {
